@@ -71,7 +71,7 @@ main(int argc, char **argv)
     int fc = lsdirf(&files, sd, 1);
     if (fc != -1) {
         for (int i = 0; i < fc; i++) {
-            //printf("%s\n", files[i]);
+            // printf("%s\n", files[i]);
         }
     }
 
@@ -83,7 +83,7 @@ main(int argc, char **argv)
     if (ffc != -1) {
         printf("Filtered:\n");
         for (int i = 0; i < ffc; i++) {
-            printf("%s", fcont(ffiles[i]));
+            // printf("%s", fcont(ffiles[i]));
         }
     }
 
@@ -206,5 +206,93 @@ char
     fclose(f);
 
     return cont;
+}
+
+static void
+pel(char *str, int i)
+{
+    int l, li = 0;
+    for (int j = 0; j < i; j++) {
+        if (str[j] == '\n') {
+            l++;
+            li = j + 1;
+        }
+    }
+    fprintf(stderr, "%d:%d", li, i-l-li);
+}
+
+struct item
+*nparse(char *str)
+{
+    struct item *i; 
+
+    char *sp = strstr(str, "[[[");
+    if (sp == NULL)
+        return NULL;
+    int s = sp - str;
+    i->s_i = s;
+
+    char *ep = strstr(str, "]]]");
+    if (ep == NULL) {
+        fprintf(stderr, "Syntax error missing closing brackets for \"[[[\" at: ");
+        pel(str, i->s_i);
+        exit(EXIT_FAILURE);
+    }
+    int e = ep - str;  
+    i->e_i = e;
+
+    for (int j = s+3; j < e; j++) {
+        if (s != i->s_i && str[j] != ' ') {
+            s = j;
+            continue;
+        }
+        if (s == i->s_i && i->e_i != e && str[j] != ' ') {
+            e = j;
+            break;
+        }
+    }
+
+    i->fname = malloc(ep-sp+1);
+    memcpy(i->fname, sp, e - s);
+    i->fname[ep-sp] = '\0';
+
+    free(ep);
+    free(sp);
+
+    return i;
+}
+
+static void
+po(const MD_CHAR *dat, MD_SIZE dat_s, void *ud)
+{
+    struct bbuf *buf = ud;
+    if (buf->as < buf->s + dat_s) {
+        size_t ns = buf->s + buf->s / 2 + dat_s;
+        buf->d = realloc(buf->d, ns);
+        buf->as = ns;
+    }
+    memcpy(buf->d + buf->s, dat, dat_s);
+    buf->s += dat_s;
+}
+
+char
+*md2html(char *str)
+{
+    int flags = MD_FLAG_UNDERLINE | MD_FLAG_LATEXMATHSPANS | 
+        MD_FLAG_TABLES | MD_FLAG_STRIKETHROUGH | MD_FLAG_TASKLISTS |
+        MD_FLAG_PERMISSIVEATXHEADERS | MD_FLAG_PERMISSIVEEMAILAUTOLINKS; 
+
+    struct bbuf bb = { 0 };
+    bb.s = 0;
+    bb.as = (strlen(str)*2)/8+64;
+    bb.d = malloc(bb.as);
+
+    int r = md_html(str, strlen(str), po, &bb, flags, 0);
+    if (r == -1) {
+        return NULL;
+    }
+    printf("%s", bb.d);
+
+    return bb.d;
 }
 
