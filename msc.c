@@ -67,30 +67,12 @@ main(int argc, char **argv)
                 failure("Failed to open/create destination directory", 1); 
     }
 
-    char **files = NULL;
-    int fc = lsdirf(&files, sd, 1);
-    if (fc != -1) {
-        for (int i = 0; i < fc; i++) {
-            // printf("%s\n", files[i]);
-        }
-    }
-
-    char **ffiles = NULL;
-    char **ex = malloc(2);
-    ex[0] = strdup(".c");
-    ex[1] = strdup(".h");
-    int ffc = fext(&ffiles, files, fc, ex, 2);
-    if (ffc != -1) {
-        printf("Filtered:\n");
-        for (int i = 0; i < ffc; i++) {
-            // printf("%s", fcont(ffiles[i]));
-        }
-    }
+    init(sd, od);
 
     return EXIT_SUCCESS;
 }
 
-static void
+void
 failure(const char *reason, int fatal)
 {
     if (!fatal)
@@ -208,7 +190,7 @@ char
     return cont;
 }
 
-static void
+void
 pel(char *str, int i)
 {
     int l, li = 0;
@@ -221,10 +203,11 @@ pel(char *str, int i)
     fprintf(stderr, "%d:%d", li, i-l-li);
 }
 
+// Segmentation fault caused by this function
 struct item
 *nparse(char *str)
 {
-    struct item *i; 
+    struct item *i = { 0 }; 
 
     char *sp = strstr(str, "[[[");
     if (sp == NULL)
@@ -256,13 +239,18 @@ struct item
     memcpy(i->fname, sp, e - s);
     i->fname[ep-sp] = '\0';
 
+    i->type = 0;
+    if (strstr(i->fname, ".md") != NULL) {
+        i->type = 1;
+    }
+
     free(ep);
     free(sp);
 
     return i;
 }
 
-static void
+void
 po(const MD_CHAR *dat, MD_SIZE dat_s, void *ud)
 {
     struct bbuf *buf = ud;
@@ -294,5 +282,30 @@ char
     printf("%s", bb.d);
 
     return bb.d;
+}
+
+void
+init(char *sd, char *od)
+{
+    char **files = NULL;
+    int fc = lsdirf(&files, sd, 1);
+
+    char **ffiles = NULL;
+    char *ex[] = { ".html", ".htm", ".md" };
+    int ffc = fext(&ffiles, files, fc, ex, 3);
+
+    for (int i = 0; i < ffc; i++) {
+        struct item *it = nparse(fcont(ffiles[i]));
+        printf("md file: %s\n", it->fname);
+        while((it = nparse(fcont(ffiles[i]))) != NULL) {
+            printf("lap\n");
+            if (it->type == 1) {
+                printf("md file: %s\n", it->fname);
+            }
+        }
+    }
+
+    free(files);
+    free(ffiles);
 }
 

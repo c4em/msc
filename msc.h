@@ -13,6 +13,7 @@ struct item {
     char *fname;
     int s_i;
     int e_i;
+    int type; // 0 = other; 1 = md;
 };
 
 struct bbuf {
@@ -30,4 +31,5 @@ static void pel(char *str, int i);
 struct item *nparse(char *str);
 static void po(const MD_CHAR *dat, MD_SIZE dat_s, void *ud);
 char *md2html(char *str);
+void init(char *sd, char *od);
 
