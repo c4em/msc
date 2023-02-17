@@ -108,10 +108,12 @@ lsdirf(char ***files, char *path, int recurse)
         strcat(fname, dir->d_name);
 
         if (dir->d_type == DT_DIR && recurse == 1) {
-            int r = lsdirf(files, fname, recurse);
-            if (r == -1) {
-                free(fname);
-                return -1;
+            if (dir->d_name[0] != '_') {
+                int r = lsdirf(files, fname, recurse);
+                if (r == -1) {
+                    free(fname);
+                    return -1;
+                }
             }
             continue;
         }
