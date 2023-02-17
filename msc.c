@@ -203,17 +203,15 @@ pel(char *str, int i)
     fprintf(stderr, "%d:%d", li, i-l-li);
 }
 
-// Still broken but less
 struct item
 *nparse(char *str)
 {
-    struct item *i = (struct item*)malloc(sizeof(struct item)); 
+    struct item *it = (struct item*)malloc(sizeof(struct item)); 
 
     char *sp = strstr(str, "[[[");
     if (sp == NULL)
         return NULL;
     int s = sp - str;
-    i->s_i = s;
 
     char *ep = strstr(str, "]]]");
     if (ep == NULL) {
@@ -222,33 +220,25 @@ struct item
         exit(EXIT_FAILURE);
     }
     int e = ep - str;  
-    i->e_i = e;
 
-
-    for (int j = s+3; j < e; j++) {
-        if (s != i->s_i && str[j] != ' ') {
-            s = j;
-            continue;
-        }
-        if (s == i->s_i && i->e_i != e && str[j] != ' ') {
-            e = j;
+    it->s_i = -1;
+    it->e_i = -1;
+    for (int i = s+3; i < e; i++) {
+        if (it->s_i == -1 && str[s+i] != ' ')
+            it->s_i = s+i;
+        if (it->s_i != -1 && str[s+i] == ' ') {
+            it->e_i = s+i-1; 
             break;
         }
     }
 
-    i->fname = malloc(ep-sp+1);
-    memcpy(i->fname, str, e - s);
-    i->fname[ep-sp] = '\0';
+    it->fname = strndup(str+it->s_i, it->e_i - it->s_i);
 
-    i->type = 0;
-    if (strstr(i->fname, ".md") != NULL) {
-        i->type = 1;
-    }
+    it->type = 0;
+    if (strstr(it->fname, ".md") != NULL)
+        it->type = 1;
 
-    free(ep);
-    free(sp);
-
-    return i;
+    return it;
 }
 
 void
@@ -299,12 +289,10 @@ init(char *sd, char *od)
         struct item *it = nparse(fcont(ffiles[i]));
         if (it == NULL)
             continue;
-        while((it = nparse(fcont(ffiles[i]))) != NULL) {
-            printf("lap\n");
-            if (it->type == 1) {
-                printf("md file: %s\n", it->fname);
-            }
-        }
+        if (it->type == 1)
+            printf("Markdown file: %s\n", it->fname);
+        else
+            printf("Other file: %s\n", it->fname);
     }
 
     free(files);
