@@ -193,7 +193,7 @@ char
 void
 pel(char *str, int i)
 {
-    int l, li = 0;
+    int l = 0, li = 0;
     for (int j = 0; j < i; j++) {
         if (str[j] == '\n') {
             l++;
@@ -203,11 +203,11 @@ pel(char *str, int i)
     fprintf(stderr, "%d:%d", li, i-l-li);
 }
 
-// Segmentation fault caused by this function
+// Still broken but less
 struct item
 *nparse(char *str)
 {
-    struct item *i = { 0 }; 
+    struct item *i = (struct item*)malloc(sizeof(struct item)); 
 
     char *sp = strstr(str, "[[[");
     if (sp == NULL)
@@ -218,11 +218,12 @@ struct item
     char *ep = strstr(str, "]]]");
     if (ep == NULL) {
         fprintf(stderr, "Syntax error missing closing brackets for \"[[[\" at: ");
-        pel(str, i->s_i);
+        pel(str, s);
         exit(EXIT_FAILURE);
     }
     int e = ep - str;  
     i->e_i = e;
+
 
     for (int j = s+3; j < e; j++) {
         if (s != i->s_i && str[j] != ' ') {
@@ -236,7 +237,7 @@ struct item
     }
 
     i->fname = malloc(ep-sp+1);
-    memcpy(i->fname, sp, e - s);
+    memcpy(i->fname, str, e - s);
     i->fname[ep-sp] = '\0';
 
     i->type = 0;
@@ -296,7 +297,8 @@ init(char *sd, char *od)
 
     for (int i = 0; i < ffc; i++) {
         struct item *it = nparse(fcont(ffiles[i]));
-        printf("md file: %s\n", it->fname);
+        if (it == NULL)
+            continue;
         while((it = nparse(fcont(ffiles[i]))) != NULL) {
             printf("lap\n");
             if (it->type == 1) {
