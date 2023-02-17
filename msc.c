@@ -10,6 +10,12 @@
 
 #include "msc.h"
 
+/*
+ * FIXME:
+ * [ ] Broken parsing of item.fname
+ * [ ] Correctly append a '/' to sd and od on opts
+ */
+
 int
 main(int argc, char **argv)
 {
@@ -213,28 +219,26 @@ struct item
     char *sp = strstr(str, "[[[");
     if (sp == NULL)
         return NULL;
-    int s = sp - str;
+    it->s_i = sp - str;
 
     char *ep = strstr(str, "]]]");
     if (ep == NULL) {
-        fprintf(stderr, "Syntax error missing closing brackets for \"[[[\" at: ");
-        pel(str, s);
+        fprintf(stderr, "Syntax error: missing closing brackets for \"[[[\" at: ");
+        pel(str, it->s_i);
         exit(EXIT_FAILURE);
     }
-    int e = ep - str;  
+    it->e_i = ep - str;  
 
-    it->s_i = -1;
-    it->e_i = -1;
-    for (int i = s+3; i < e; i++) {
-        if (it->s_i == -1 && str[s+i] != ' ')
-            it->s_i = s+i;
-        if (it->s_i != -1 && str[s+i] == ' ') {
-            it->e_i = s+i-1; 
+    int s = -1, e = -1;
+    for (int i = s+3; i < it->e_i; i++) {
+        if (s == -1 && str[it->s_i+i] != ' ')
+            s = it->s_i+i;
+        if (s != -1 && str[it->s_i+i] == ' ') {
+            s = it->s_i+i-1; 
             break;
         }
     }
-
-    it->fname = strndup(str+it->s_i, it->e_i - it->s_i);
+    it->fname = strndup(str+s, e - s);
 
     it->type = 0;
     if (strstr(it->fname, ".md") != NULL)
@@ -278,6 +282,26 @@ char
 }
 
 void
+cpy(char *src, char *dest)
+{
+    char *cont = fcont(src);
+    if (cont == NULL) {
+        fprintf(stderr, "Failed to read data from file %s for copying", src);
+        failure("", 1);
+    }
+
+    FILE *dfp = fopen(dest, "w");
+    if (dfp == NULL) {
+        fprintf(stderr, "Could not write to output file %s", dest);
+        failure("", 1);
+    }
+
+    fputs(cont, dfp);
+
+    fclose(dfp);
+}
+
+void
 init(char *sd, char *od)
 {
     char **files = NULL;
@@ -287,14 +311,52 @@ init(char *sd, char *od)
     char *ex[] = { ".html", ".htm", ".md" };
     int ffc = fext(&ffiles, files, fc, ex, 3);
 
+    for (int i = 0; i < fc; i++) {
+        char *of = strdup(od);
+        of = realloc(of, strlen(of)+strlen(files[i]+strlen(sd)));
+        strcat(of, files[i]+strlen(sd)+1);
+        printf("Out file: %s\n", of);
+        cpy(files[i], of);
+        free(of);
+    }
+
     for (int i = 0; i < ffc; i++) {
-        struct item *it = nparse(fcont(ffiles[i]));
-        if (it == NULL)
-            continue;
-        if (it->type == 1)
-            printf("Markdown file: %s\n", it->fname);
-        else
-            printf("Other file: %s\n", it->fname);
+        char *off = strdup(od);
+        off = realloc(off, strlen(off)+strlen(ffiles[i]+strlen(sd)));
+        strcat(off, ffiles[i]+strlen(sd)+1);
+        printf("Out filtered file: %s\n", off);
+
+        char *ffcont = fcont(ffiles[i]);
+        struct item *it = nparse(ffcont);
+        while (it != NULL) {
+            char *ofd = strndup(ffcont, it->s_i);
+
+            char *m = NULL;
+            if (it->type == 1)
+                m = md2html(fcont(it->fname));
+            else
+                m = fcont(it->fname);
+
+            ofd = realloc(ofd, strlen(ofd)+strlen(m)+strlen(ffcont+it->e_i)+1);
+            strcat(ofd, m);
+            strcat(ofd, ffcont+it->e_i);
+
+            FILE *dfp = fopen(off, "w");
+            if (dfp == NULL) {
+                fprintf(stderr, "Could not write to output file %s", off);
+                failure("", 1);
+            }
+            fputs(ofd, dfp);
+            fclose(dfp);
+
+            free(ofd);
+            free(m);
+
+            free(it);
+            it = nparse(fcont(ffiles[i]));
+        }
+
+        free(off);
     }
 
     free(files);

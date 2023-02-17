@@ -1,6 +1,6 @@
 CC = cc
 CFLAGS = -Os -flto -Wall -Wextra
-LDFLAGS = `pkg-config --libs md4c`
+LDFLAGS = `pkg-config --libs md4c-html`
 
 SRC = msc.c
 OUT = msc

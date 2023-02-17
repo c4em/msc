@@ -31,5 +31,6 @@ static void pel(char *str, int i);
 struct item *nparse(char *str);
 static void po(const MD_CHAR *dat, MD_SIZE dat_s, void *ud);
 char *md2html(char *str);
+void cpy(char *src, char *dest);
 void init(char *sd, char *od);
 
