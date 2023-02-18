@@ -32,5 +32,8 @@ struct item *nparse(char *str, char *sd);
 static void po(const MD_CHAR *dat, MD_SIZE dat_s, void *ud);
 char *md2html(char *str);
 void cpy(char *src, char *dest);
+void cpyf(char **filess, int fc, char *sd, char *od);
+char *rmdf(char *fp);
+void pff(char **ffiles, int ffcm char *sd, char *od);
 void init(char *sd, char *od);
 
