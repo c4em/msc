@@ -55,6 +55,9 @@ main(int argc, char **argv)
             failure("Failed to get current working directory", 1); 
         if (access(sd, R_OK) == -1)
             failure("Failed to get current working directory", 1); 
+
+        sd = realloc(sd, strlen(sd)+2);
+        sd = strcat(sd, "/");
     }
 
     if (od == NULL) {
