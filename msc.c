@@ -112,8 +112,6 @@ lsdirf(char ***files, char *path, int recurse)
         if (fname == NULL)
             failure("Memory allocation failed in lsdirf()", 1);
         strcpy(fname, path);
-        if (strlen(path) > 0 && path[strlen(path)] != '/')
-            strcat(fname, "/");
         strcat(fname, dir->d_name);
 
         if (dir->d_type == DT_DIR && recurse == 1) {
@@ -322,25 +320,46 @@ init(char *sd, char *od)
     int ffc = fext(&ffiles, files, fc, ex, 3);
 
     for (int i = 0; i < fc; i++) {
-        char *of = strdup(od);
-        of = realloc(of, strlen(of)+strlen(files[i]+strlen(sd)));
-        strcat(of, files[i]+strlen(sd)+1);
-        cpy(files[i], of);
-        free(of);
+        if (strstr(files[i], ".md") == NULL) {
+            char *of = strdup(od);
+            of = realloc(of, strlen(of)+strlen(files[i]+strlen(sd))+1);
+            strcat(of, files[i]+strlen(sd));
+            cpy(files[i], of);
+            free(of);
+        }
     }
 
     for (int i = 0; i < ffc; i++) {
         char *off = strdup(od);
-        off = realloc(off, strlen(off)+strlen(ffiles[i]+strlen(sd)));
-        strcat(off, ffiles[i]+strlen(sd)+1);
+        char *orgf = NULL;
+        if (strstr(ffiles[i], ".md") != NULL) {
+            orgf = strdup(ffiles[i]);
+            ffiles[i] = strndup(ffiles[i], strlen(ffiles[i])-2);
+            ffiles[i] = realloc(ffiles[i], strlen(ffiles[i])+5);
+            strcat(ffiles[i], "html");
+        }
+        off = realloc(off, strlen(off)+strlen(ffiles[i]+strlen(sd))+1);
+        strcat(off, ffiles[i]+strlen(sd));
 
-        char *ffcont = fcont(ffiles[i]);
+        char *ffcont = NULL;
+        if (orgf != NULL) {
+            ffcont = md2html(fcont(orgf));
+        } else {
+            ffcont = fcont(ffiles[i]);
+        }
+
         if (ffcont == NULL) {
             fprintf(stderr, "Failed to read from filtered file %s", ffiles[i]);
             failure("", 1);
         }
 
         struct item *it = nparse(ffcont, sd);
+        if (it == NULL) {
+            FILE *of = fopen(off, "w");
+            fputs(ffcont, of);
+            fclose(of);
+        }
+
         while (it != NULL) {
             char *ofd = strndup(ffcont, it->s_i);
 
