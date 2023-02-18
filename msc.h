@@ -28,7 +28,7 @@ int lsdirf(char ***files, char *path, int recurse);
 int fext(char ***ffiles, char **files, int fc, char **ex, int exc);
 char *fcont(char *path);
 static void pel(char *str, int i);
-struct item *nparse(char *str);
+struct item *nparse(char *str, char *sd);
 static void po(const MD_CHAR *dat, MD_SIZE dat_s, void *ud);
 char *md2html(char *str);
 void cpy(char *src, char *dest);

@@ -10,12 +10,6 @@
 
 #include "msc.h"
 
-/*
- * FIXME:
- * [ ] Broken parsing of item.fname
- * [ ] Correctly append a '/' to sd and od on opts
- */
-
 int
 main(int argc, char **argv)
 {
@@ -26,7 +20,6 @@ main(int argc, char **argv)
             case 'h':
                 break;
             case 's':
-                printf("s optarg: %s\n", optarg);
                 if (access(optarg, R_OK) == -1)
                     failure("Failed to open specified source directory", 1);
                 if (sd == NULL) {
@@ -34,9 +27,12 @@ main(int argc, char **argv)
                     if (sd == NULL)
                         failure("Failed to allocate memory for source directory", 1);
                 }
+                if (sd[strlen(sd)] != '/') {
+                    sd = realloc(sd, strlen(sd)+2);
+                    strcat(sd, "/");
+                }
                 break;
             case 'd':
-                printf("d optarg: %s\n", optarg);
                 if (access(optarg, F_OK) == -1) 
                     if (mkdir(optarg, S_IRWXU) == -1)
                         failure("Failed to open/create destination directory", 1); 
@@ -44,6 +40,10 @@ main(int argc, char **argv)
                     od = strdup(optarg);
                     if (od == NULL)
                         failure("Failed to allocate memory for destination directory", 1);
+                }
+                if (od[strlen(od)] != '/') {
+                    od = realloc(od, strlen(od)+2);
+                    strcat(od, "/");
                 }
                 break;
         }
@@ -212,7 +212,7 @@ pel(char *str, int i)
 }
 
 struct item
-*nparse(char *str)
+*nparse(char *str, char *sd)
 {
     struct item *it = (struct item*)malloc(sizeof(struct item)); 
 
@@ -227,18 +227,26 @@ struct item
         pel(str, it->s_i);
         exit(EXIT_FAILURE);
     }
-    it->e_i = ep - str;  
+    it->e_i = (ep - str)+3;  
 
     int s = -1, e = -1;
-    for (int i = s+3; i < it->e_i; i++) {
+    for (int i = 3; i < it->e_i; i++) {
         if (s == -1 && str[it->s_i+i] != ' ')
             s = it->s_i+i;
         if (s != -1 && str[it->s_i+i] == ' ') {
-            s = it->s_i+i-1; 
+            e = it->s_i+i; 
             break;
         }
     }
-    it->fname = strndup(str+s, e - s);
+    if (sd != NULL) {
+        it->fname = strdup(sd); 
+        char *temp = strndup(str+s, e - s);
+        it->fname = realloc(it->fname, strlen(sd)+strlen(temp)+1);
+        strcat(it->fname, temp);
+        free(temp);
+    } else {
+        it->fname = strndup(str+s, e - s);
+    }
 
     it->type = 0;
     if (strstr(it->fname, ".md") != NULL)
@@ -276,7 +284,6 @@ char
     if (r == -1) {
         return NULL;
     }
-    printf("%s", bb.d);
 
     return bb.d;
 }
@@ -315,7 +322,6 @@ init(char *sd, char *od)
         char *of = strdup(od);
         of = realloc(of, strlen(of)+strlen(files[i]+strlen(sd)));
         strcat(of, files[i]+strlen(sd)+1);
-        printf("Out file: %s\n", of);
         cpy(files[i], of);
         free(of);
     }
@@ -324,10 +330,14 @@ init(char *sd, char *od)
         char *off = strdup(od);
         off = realloc(off, strlen(off)+strlen(ffiles[i]+strlen(sd)));
         strcat(off, ffiles[i]+strlen(sd)+1);
-        printf("Out filtered file: %s\n", off);
 
         char *ffcont = fcont(ffiles[i]);
-        struct item *it = nparse(ffcont);
+        if (ffcont == NULL) {
+            fprintf(stderr, "Failed to read from filtered file %s", ffiles[i]);
+            failure("", 1);
+        }
+
+        struct item *it = nparse(ffcont, sd);
         while (it != NULL) {
             char *ofd = strndup(ffcont, it->s_i);
 
@@ -349,11 +359,11 @@ init(char *sd, char *od)
             fputs(ofd, dfp);
             fclose(dfp);
 
-            free(ofd);
             free(m);
 
             free(it);
-            it = nparse(fcont(ffiles[i]));
+            it = nparse(ofd, sd);
+            free(ofd);
         }
 
         free(off);
