@@ -10,6 +10,15 @@
 
 #include "msc.h"
 
+/*
+ * TODO:
+ * - Go through the code and add checks for edge cases, this is currently a house of cards
+ * - Fix the issue of the dist file being incorrect on the second run if the previous dist dir wasn't removed
+ * - Fix memory leaks
+ * - Clean up code
+ * - Add the last missing feature of being able to embed entire directories
+ */
+
 int
 main(int argc, char **argv)
 {
