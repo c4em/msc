@@ -34,6 +34,6 @@ char *md2html(char *str);
 void cpy(char *src, char *dest);
 void cpyf(char **filess, int fc, char *sd, char *od);
 char *rmdf(char *fp);
-void pff(char **ffiles, int ffcm char *sd, char *od);
+void pff(char **ffiles, int ffc, char *sd, char *od);
 void init(char *sd, char *od);
 

@@ -16,7 +16,7 @@
  * - Fix the issue of the dist file being incorrect on the second run if the previous dist dir wasn't removed
  * - Fix memory leaks
  * - Clean up code
- * - Add the last missing feature of being able to embed entire directories
+ * - Fix the heap buffer overflow which will eventually become a problem
  */
 
 int
@@ -188,10 +188,11 @@ char
         return NULL;
     }
 
-    fseek(f, 0, SEEK_END);
+    fseek(f, 0L, SEEK_END);
     size_t len = ftell(f);
-    fseek(f, 0, SEEK_SET);
-    char *cont = malloc(len);
+    rewind(f);
+
+    char *cont = calloc(1, len+1);
     if (cont == NULL) {
         fclose(f);
         failure("Failed to allocate memory in fcont()", 0);
@@ -345,6 +346,51 @@ char
 }
 
 void
+wrd(char *dfp, char *dfc)
+{
+    FILE *dfpp = fopen(dfp, "w");
+    if (dfpp == NULL) {
+        fprintf(stderr, "Could not write to output file %s", dfp);
+        failure("", 1);
+    }
+
+    fputs(dfc, dfpp);
+    fclose(dfpp);
+}
+
+char
+*ged(char *fname, int type)
+{
+    if (type == 1) 
+        return md2html(fcont(fname));
+    else {
+        char *cont = fcont(fname);
+        return cont;
+    }
+}
+
+char
+*gmed(char **files, int fc)
+{
+    char *co = NULL;
+    for (int i = 0; i < fc; i++) {
+        int type = 0;
+        if (strstr(files[i], ".md") != NULL)
+            type = 1;
+        char *pc = ged(files[i], type);
+        if (co == NULL) {
+            co = strdup(pc);
+            free(pc);
+            continue;
+        }
+        co = realloc(co, strlen(co)+strlen(pc)+1);
+        co = strcat(co, pc);
+        free(pc);
+    }
+    return co;
+}
+
+void
 pff(char **ffiles, int ffc, char *sd, char *od)
 {
     for (int i = 0; i < ffc; i++) {
@@ -370,42 +416,32 @@ pff(char **ffiles, int ffc, char *sd, char *od)
         }
 
         struct item *it = nparse(ffcont, sd);
-        if (it == NULL) {
-            FILE *of = fopen(ofp, "w");
-            fputs(ffcont, of);
-            fclose(of);
-        }
-
         while (it != NULL) {
             char *ofc = strndup(ffcont, it->s_i);
-
             char *m = NULL;
-            if (it->type == 1)
-                m = md2html(fcont(it->fname));
-            else
-                m = fcont(it->fname);
-
-            ofc = realloc(ofc, strlen(ofc)+strlen(m)+strlen(ffcont+it->e_i)+1);
-            strcat(ofc, m);
-            strcat(ofc, ffcont+it->e_i);
-
-            FILE *dfp = fopen(ofp, "w");
-            if (dfp == NULL) {
-                fprintf(stderr, "Could not write to output file %s", ofp);
-                failure("", 1);
+            if (strstr(it->fname, "/*") != NULL) {
+                char *path = strndup(it->fname, strlen(it->fname)-1);
+                char **ef = NULL;
+                int ec = lsdirf(&ef, path, 1);
+                m = gmed(ef, ec);
+            } else {
+                m = ged(it->fname, it->type);
             }
 
-            fputs(ofc, dfp);
-            fclose(dfp);
+            ofc = realloc(ofc, strlen(ofc)+strlen(m)+strlen(ffcont+it->e_i)+1);
+            ofc = strcat(ofc, m);
+            ofc = strcat(ofc, ffcont+it->e_i);
 
+            wrd(ofp, ofc); 
+            
             free(m);
 
             free(it);
             it = nparse(ofc, sd);
-
+            free(ffcont);
+            ffcont = strdup(ofc);
             free(ofc);
         }
-
         free(ofp);
     }
 }
