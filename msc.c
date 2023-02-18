@@ -310,40 +310,47 @@ cpy(char *src, char *dest)
 }
 
 void
-init(char *sd, char *od)
+cpyf(char **files, int fc, char *sd, char *od)
 {
-    char **files = NULL;
-    int fc = lsdirf(&files, sd, 1);
-
-    char **ffiles = NULL;
-    char *ex[] = { ".html", ".htm", ".md" };
-    int ffc = fext(&ffiles, files, fc, ex, 3);
-
     for (int i = 0; i < fc; i++) {
-        if (strstr(files[i], ".md") == NULL) {
-            char *of = strdup(od);
-            of = realloc(of, strlen(of)+strlen(files[i]+strlen(sd))+1);
-            strcat(of, files[i]+strlen(sd));
-            cpy(files[i], of);
-            free(of);
-        }
-    }
+        if (strstr(files[i], ".md") != NULL)
+            continue;
 
+        char *ofp = strdup(od);
+        ofp = realloc(ofp, strlen(ofp)+strlen(files[i]+strlen(sd))+1);
+        strcat(ofp, files[i]+strlen(sd));
+
+        cpy(files[i], ofp);
+        free(ofp);
+    }
+}
+
+char
+*rmdf(char *fp)
+{
+    fp = strndup(fp, strlen(fp)-2);
+    fp = realloc(fp, strlen(fp)+5);
+    strcat(fp, "html");
+
+    return fp;
+}
+
+void
+pff(char **ffiles, int ffc, char *sd, char *od)
+{
     for (int i = 0; i < ffc; i++) {
-        char *off = strdup(od);
-        char *orgf = NULL;
+        char *ofp = strdup(od);
+        char *orgfp = NULL;
         if (strstr(ffiles[i], ".md") != NULL) {
-            orgf = strdup(ffiles[i]);
-            ffiles[i] = strndup(ffiles[i], strlen(ffiles[i])-2);
-            ffiles[i] = realloc(ffiles[i], strlen(ffiles[i])+5);
-            strcat(ffiles[i], "html");
+            orgfp = strdup(ffiles[i]);
+            ffiles[i] = rmdf(ffiles[i]);
         }
-        off = realloc(off, strlen(off)+strlen(ffiles[i]+strlen(sd))+1);
-        strcat(off, ffiles[i]+strlen(sd));
+        ofp = realloc(ofp, strlen(ofp)+strlen(ffiles[i]+strlen(sd))+1);
+        strcat(ofp, ffiles[i]+strlen(sd));
 
         char *ffcont = NULL;
-        if (orgf != NULL) {
-            ffcont = md2html(fcont(orgf));
+        if (orgfp != NULL) {
+            ffcont = md2html(fcont(orgfp));
         } else {
             ffcont = fcont(ffiles[i]);
         }
@@ -355,13 +362,13 @@ init(char *sd, char *od)
 
         struct item *it = nparse(ffcont, sd);
         if (it == NULL) {
-            FILE *of = fopen(off, "w");
+            FILE *of = fopen(ofp, "w");
             fputs(ffcont, of);
             fclose(of);
         }
 
         while (it != NULL) {
-            char *ofd = strndup(ffcont, it->s_i);
+            char *ofc = strndup(ffcont, it->s_i);
 
             char *m = NULL;
             if (it->type == 1)
@@ -369,27 +376,44 @@ init(char *sd, char *od)
             else
                 m = fcont(it->fname);
 
-            ofd = realloc(ofd, strlen(ofd)+strlen(m)+strlen(ffcont+it->e_i)+1);
-            strcat(ofd, m);
-            strcat(ofd, ffcont+it->e_i);
+            ofc = realloc(ofc, strlen(ofc)+strlen(m)+strlen(ffcont+it->e_i)+1);
+            strcat(ofc, m);
+            strcat(ofc, ffcont+it->e_i);
 
-            FILE *dfp = fopen(off, "w");
+            FILE *dfp = fopen(ofp, "w");
             if (dfp == NULL) {
-                fprintf(stderr, "Could not write to output file %s", off);
+                fprintf(stderr, "Could not write to output file %s", ofp);
                 failure("", 1);
             }
-            fputs(ofd, dfp);
+
+            fputs(ofc, dfp);
             fclose(dfp);
 
             free(m);
 
             free(it);
-            it = nparse(ofd, sd);
-            free(ofd);
+            it = nparse(ofc, sd);
+
+            free(ofc);
         }
 
-        free(off);
+        free(ofp);
     }
+}
+
+void
+init(char *sd, char *od)
+{
+    char **files = NULL;
+    int fc = lsdirf(&files, sd, 1);
+
+    char **ffiles = NULL;
+    char *ex[] = { ".html", ".htm", ".md" };
+    int ffc = fext(&ffiles, files, fc, ex, 3);
+
+    cpyf(files, fc, sd, od); 
+
+    pff(ffiles, ffc, sd, od);
 
     free(files);
     free(ffiles);
