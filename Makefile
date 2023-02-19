@@ -17,8 +17,8 @@ msc: options
 	$(CC) $(SRC) $(CFLAGS) $(LDFLAGS) -o $(OUT)
 
 debug:
-	$(CC) $(SRC) $(CFLAGS) $(LDFLAGS) -o $(OUT)-d
-	$(CC) $(SRC) $(CFLAGS) $(LDFLAGS) -fsanitize=address -o $(OUT)-ds
+	$(CC) $(SRC) -g -Og $(LDFLAGS) -o $(OUT)-d
+	$(CC) $(SRC) -g -Og $(LDFLAGS) -fsanitize=address -o $(OUT)-ds
 
 clean:
 	rm -rf $(OUT) $(OUT)-d $(OUT)-ds dist/
