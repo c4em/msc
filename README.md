@@ -1,5 +1,4 @@
 # msc - Minimal Site Compiler
----
 
 Minimal Site Compiler is a fast and minimalistic static site generator. 
 
