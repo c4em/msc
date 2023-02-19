@@ -36,6 +36,7 @@
  * - Fix memory leaks
  * - Clean up code
  * - Fix the heap buffer overflow which will eventually become a problem
+ * - Make parent directories as needed for dist
  */
 
 int
@@ -144,6 +145,8 @@ lsdirf(char ***files, char *path, int recurse)
 
         if (dir->d_type == DT_DIR && recurse == 1) {
             if (dir->d_name[0] != '_') {
+                if (strlen(path) > 0 && path[strlen(path)] != '/')
+                    strcat(fname, "/");
                 int r = lsdirf(files, fname, recurse);
                 if (r == -1) {
                     free(fname);
