@@ -37,6 +37,7 @@ char *rmdf(char *fp);
 void wrd(char *dfp, char *dfc);
 char *ged(char *fname, int type);
 char *gmed(char **files, int fc);
+void mdr(char *path);
 void pff(char **ffiles, int ffc, char *sd, char *od);
 void init(char *sd, char *od);
 

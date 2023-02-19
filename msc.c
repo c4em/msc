@@ -32,11 +32,10 @@
 /*
  * TODO:
  * - Go through the code and add checks for edge cases, this is currently a house of cards
- * - Fix the issue of the dist file being incorrect on the second run if the previous dist dir wasn't removed
+ * - (?fixed) Fix the issue of the dist file being incorrect on the second run if the previous dist dir wasn't removed
  * - Fix memory leaks
  * - Clean up code
  * - Fix the heap buffer overflow which will eventually become a problem
- * - Make parent directories as needed for dist
  */
 
 int
@@ -324,6 +323,20 @@ char
 void
 cpy(char *src, char *dest)
 {
+    int s = -1;
+    for (int i = strlen(dest); i > 0; i--) {
+        if (dest[i] == '/') {
+            s = i;
+            break;
+        }
+    }
+
+    if (s != -1) {
+        char *ppath = strndup(dest, s);
+        mdr(ppath);
+        free(ppath);
+    }
+
     char *cont = fcont(src);
     if (cont == NULL) {
         fprintf(stderr, "Failed to read data from file %s for copying", src);
@@ -410,6 +423,42 @@ char
         free(pc);
     }
     return co;
+}
+
+void
+mdr(char *path)
+{
+    int s = -1, e = -1;
+    int plen = strlen(path);
+    for (int i = 0; i < plen; i++) {
+        if (s == -1 && path[i] == '/') {
+            s = i;
+            continue;
+        }
+        if (s != -1 && path[i] == '/') {
+            e = i;
+        }
+        if (i+1 == plen) {
+            e = i+1;
+        }
+
+        if (s != -1 && e != -1) {
+            char *fpath = strndup(path, e);
+            if (access(fpath, F_OK) != 0) {
+                int st = mkdir(fpath, S_IRWXU);
+                free(fpath);
+                if (st != 0 && st != EACCES) {
+                    char *edir = strndup(path, e);
+                    fprintf(stderr, "Could not create directory: %s", edir);
+                    free(edir);
+                    failure("", 1);
+                }
+
+                s = e;
+                e = -1;
+            }
+        }
+    }
 }
 
 void
